@@ -83,8 +83,6 @@ def image_re_caption(image, processor, model):
     generated_text = processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
     return generated_text
 
-
-
 def process_image(image_path, processor, model):
     output_file = os.path.splitext(image_path)[0] + '.txt'
     result = image_re_caption(image_path, processor, model)
@@ -94,10 +92,18 @@ def process_image(image_path, processor, model):
         f.write(result)
     print(f"LLM: {result}") 
 
-
-
-def main(image_dir):
-    image_files = [os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.lower().endswith(('.png', '.jpg', '.jpeg', '.webp'))]
+def main(repo_dir):
+    '''
+    TODO: Currently, manual extraction of tarball is required, which is highly 
+    disadvantageous for very large datasets and can even affect hard drive IO. 
+    I hope there is a way to directly read tarball, thus avoiding the waste of a large amount of IO.
+    
+    Now I'm reading code from HakuBooru...
+    https://github.com/KohakuBlueleaf/HakuBooru
+    '''
+    image_dir = os.path.join(repo_dir, 'webp')
+    tags_dir = os.path.join(repo_dir, 'tags')
+    image_files = [os.path.join(image_dir, f) for f in os.listdir(image_dir) if f.lower().endswith(('.webp'))]
     # Load models
     processor, model = model_loader()
     for img in tqdm(image_files):
@@ -106,4 +112,4 @@ def main(image_dir):
 
 
 if __name__ == "__main__":
-    main('./images')
+    main('./')
