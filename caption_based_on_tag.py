@@ -1,6 +1,7 @@
 import os
 import json
 import tarfile
+import shutil
 from transformers import (
     AutoModelForCausalLM,
     AutoProcessor,
@@ -116,14 +117,14 @@ def main(repo_dir):
             # Extract image tar file to the temp folder
             images = extract_tar_data(os.path.join(image_dir, f'data-{i:04d}.tar'), temp_dir)
             tags = extract_tar_data(os.path.join(tags_dir, f'data-{i:04d}.tar'), temp_dir) # Same as tags, but returned lists cannot be used.
-
-            for img in tqdm(images):
+            image_paths = [os.path.join(temp_dir, img) for img in images] # Get image paths
+            for img in tqdm(image_paths):
                 process_image(img, processor, model)
         
-        os.rmdir(temp_dir)
+        shutil.rmtree(temp_dir)
     except Exception as e:
         print('Error when processing:', e)
-        os.rmdir(temp_dir)
+        shutil.rmtree(temp_dir)
 
 if __name__ == "__main__":
     captions_output_dir = './NL-captions'
