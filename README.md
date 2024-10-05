@@ -11,7 +11,8 @@ A: Follow these steps to run the experiment:
    - Follow the installation instructions in the [README](https://github.com/cyan2k/molmo-7b-bnb-4bit) of this repository.
 
 3. **Prepare Images and Tags**:
-   - Place your images and tags (in JSON format, see [here](https://huggingface.co/datasets/Amber-River/Pixiv-2.6M/tree/main/tags) for reference) in the `images` folder.
+   - Download dataset [here](https://huggingface.co/datasets/Amber-River/Pixiv-2.6M)
+   - Set `dataset_path` in the end of the python file `caption_based_on_tag.py`
 
 4. **Run the Script**:
    - Open Windows Terminal or Linux Terminal (tested and works great on Linux Terminal).
