@@ -1,3 +1,8 @@
-images/*
+images/*.npz
+images/*.png
+images/*.webp
+images/*.txt
+images/*.jpg
+images/*.json
 .venv/
 molmo-7B-D-bnb-4bit/
