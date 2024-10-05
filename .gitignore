@@ -7,3 +7,4 @@ images/*.json
 .venv/
 molmo-7B-D-bnb-4bit/
 Pixiv-2.6M/
+NL-captions/

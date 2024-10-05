@@ -45,27 +45,26 @@ def image_re_caption(image, processor, model):
     if 'character_tags' in tags_dict.keys(): # Has character tags
         character = tags_dict['character_tags']
         if len(character) == 1: # ['ganyu (genshin impact)']
-            if '(' and ')' in character: # ganyu (genshin impact)
+            character = character[0]
+            if '(' in character and ')' in character: # ganyu (genshin impact)
                 character_tag = character.split()[0]
                 
                 series_tag = character[character.find('(')+1:character.find(')')]
                 prompt += f"The character in this image is '{character_tag}'. The series is '{series_tag}'. If you know about the series, response this series is game or anime."
             else: # ganyu
-                character_tag = character[0]
+                character_tag = character
                 prompt += f"The character in this image is '{character_tag}'"
         else: # ['ganyu (genshin impact)', 'slime (genshin impoact)', 'keqing (genshin impact)', 'etc...'] ganyu & keqing vs slime (doge)
             characters_tag = []
             series = set()
-            i = 0
             for value in character:
-                if '(' and ')' in value: # ['ganyu (genshin impact)', 'slime (genshin impoact)', 'keqing (genshin impact)', 'etc...']
+                if '(' in value and ')' in value: # ['ganyu (genshin impact)', 'slime (genshin impoact)', 'keqing (genshin impact)', 'etc...']
                     character_tag = value.split()[0]
-                    series_tag = character[character.find('(')+1:character.find(')')]
+                    series_tag = value[value.find('(')+1:value.find(')')]
                     characters_tag.append(character_tag)
                     series.add(series_tag)
                 else: # ['ganyu', 'slime', 'keqing', 'etc...']
-                    characters_tag.append(character[i])
-                    i += 1
+                    characters_tag.append(value)
             characters = ", ".join(characters_tag)
             prompt += f"These characters in this image is '{characters}'"
             if len(series) != 0: # Has series tags.
@@ -86,13 +85,13 @@ def image_re_caption(image, processor, model):
     return generated_text
 
 def process_image(image_path, processor, model):
-    output_file = os.path.join(captions_output_dir, str(os.path.splitext(image_path)[0] + '.txt'))
+    output_file = os.path.join(captions_output_dir, os.path.basename(str(os.path.splitext(image_path)[0] + '.txt')))
     result = image_re_caption(image_path, processor, model)
     if os.path.exists(output_file):
         os.remove(output_file)
+    print(f"LLM: {result}") 
     with open(output_file, 'w', encoding='UTF-8') as f:
         f.write(result)
-    print(f"LLM: {result}") 
     tag_file = os.path.splitext(image_path)[0] + '.json'
     # Remove image and tags to save storage. Commit out it if you want to save.
     os.remove(image_path)
@@ -128,5 +127,7 @@ def main(repo_dir):
 
 if __name__ == "__main__":
     captions_output_dir = './NL-captions'
+    if not os.path.exists(captions_output_dir):
+        os.makedirs(captions_output_dir, exist_ok=True)
     dataset_path = './Pixiv-2.6M'
     main(dataset_path)
