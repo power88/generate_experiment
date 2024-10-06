@@ -53,7 +53,7 @@ def image_re_caption(image, processor, model):
                 prompt += f"The character in this image is '{character_tag}'. The series is '{series_tag}'. If you know about the series, response this series is game or anime."
             else: # ganyu
                 character_tag = character
-                prompt += f"The character in this image is '{character_tag}'"
+                prompt += f"The character in this image is '{character_tag}'."
         else: # ['ganyu (genshin impact)', 'slime (genshin impoact)', 'keqing (genshin impact)', 'etc...'] ganyu & keqing vs slime (doge)
             characters_tag = []
             series = set()
@@ -66,34 +66,41 @@ def image_re_caption(image, processor, model):
                 else: # ['ganyu', 'slime', 'keqing', 'etc...']
                     characters_tag.append(value)
             characters = ", ".join(characters_tag)
-            prompt += f"These characters in this image is '{characters}'"
+            prompt += f"These characters in this image is '{characters}'."
             if len(series) != 0: # Has series tags.
                 series_prompt = 'The series is'
                 for serial in series: # The set cannot be indexed.
-                    series_prompt += f"'{serial}'"
-                series_prompt += '. If you know about the series, response this series is game or anime.'
+                    series_prompt += f"'{serial}'."
+                series_prompt += ' If you know about the series, response this series is game or anime.'
                 prompt += series_prompt
 
-    base_prompt = f"Please describe this image based on these tags. The response must include these tags. And should in a word range from 50 to 255. Do not describe anything else. Response the description as sentences (with the following: 'An image of ...'). No need to response as markdown format."
+    base_prompt = f"Please describe this image based on these tags. The response must include these tags. And should in a word range from 50 to 255. Do not describe anything else. Response the description as sentences (with the following: 'An image of ...'). No need to response as markdown format. If there's tags with 'NSFW images', please make sure to indicate that it is an NSFW image."
     generated_prompt = prompt + '. ' + base_prompt
-    print(f'\nAsk: {generated_prompt}')
+    print(f'\n\nAsk: {generated_prompt}')
+
     inputs = processor.process(images=[Image.open(image)], text=generated_prompt)
     inputs = {k: v.to(model.device).unsqueeze(0) for k, v in inputs.items()}
     output = model.generate_from_batch(inputs,GenerationConfig(max_new_tokens=512, stop_strings="<|endoftext|>"),tokenizer=processor.tokenizer)
+
     generated_tokens = output[0, inputs["input_ids"].size(1) :]
     generated_text = processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+
     return generated_text
 
 def process_image(image_path, processor, model):
     output_file = os.path.join(captions_output_dir, os.path.basename(str(os.path.splitext(image_path)[0] + '.txt')))
+
     result = image_re_caption(image_path, processor, model)
+
     if os.path.exists(output_file):
         os.remove(output_file)
-    print(f"LLM: {result}") 
+    
+    print(f"\n\nLLM: {result}") 
+
     with open(output_file, 'w', encoding='UTF-8') as f:
         f.write(result)
     tag_file = os.path.splitext(image_path)[0] + '.json'
-    # Remove image and tags to save storage. Commit out it if you want to save.
+    # Remove image and tags to save storage. Commit it out if you want to save.
     os.remove(image_path)
     os.remove(tag_file)
 
