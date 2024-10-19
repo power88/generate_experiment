@@ -20,12 +20,14 @@ TODO:
 3.Add a prompt to determine if there are multiple characters. 
     If there are multiple characters, evaluate each one based on the number of individuals and print the results accordingly. 
     Then store the information for each character as separate JSON files.
+    (Done)
 '''
 
 def load_tags_from_json(image):
     result = {}
     tag_file = os.path.splitext(image)[0] + '.json'
     pid = str(os.path.splitext(os.path.basename(tag_file))[0]).split('_')[0]
+    result['pid'] = str(os.path.splitext(os.path.basename(tag_file))[0])
     
     with open(tag_file, 'r') as json_file:
         json_dict = json.load(json_file)
@@ -39,7 +41,7 @@ def load_tags_from_json(image):
         no_artist = False
     except Exception as e:
         no_artist = True
-        print(f"There's no artist in pid: {pid}")
+        tqdm.write(f"There's no artist in pid: {pid}")
     
     gen_result = ", ".join(gen_tags)
     result['general_tags'] = gen_result.replace('_', ' ') + ', ' + str(nsfw_tags[0] if nsfw_tags[0] != 'explicit' else 'NSFW' + ' image')
@@ -84,6 +86,8 @@ def generate_prompt(image):
                     characters_tag.append(value)
             characters = ", ".join(characters_tag)
             prompt += f"These characters in this image is '{characters}'."
+            tqdm.write(f"Notice: There's many characters in image {tags_dict['pid']}. {prompt}")
+            multiple_characters_dict[tags_dict['pid']] = characters
             if len(series) != 0:
                 series_prompt = 'The series is'
                 for serial in series:
@@ -150,7 +154,8 @@ def extract_tar_data(tar_path, extract_path):
         return [member.name for member in members]
 
 def main(repo_dir):
-    global pid_uid_dict
+    global pid_uid_dict, multiple_characters_dict
+    multiple_characters_dict = {}
     with open('pid-uid.json') as metadata:
         pid_uid_dict = json.load(metadata)
     
@@ -173,6 +178,10 @@ def main(repo_dir):
                 process_image(img, processor, model)
         
         shutil.rmtree(temp_dir)
+        
+        with open(os.path.join(captions_output_dir, 'multiple_characters.json'), 'r') as multiple_characters:
+            json.dump(multiple_characters_dict)
+            
     except Exception as e:
         print('Error when processing:', e)
         shutil.rmtree(temp_dir)
