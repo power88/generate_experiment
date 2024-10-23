@@ -2,25 +2,20 @@ import os
 import json
 import tarfile
 import shutil
-from transformers import (
-    AutoModelForCausalLM,
-    AutoProcessor,
-    GenerationConfig,
-)
+import requests
+from io import BytesIO
 from PIL import Image
 from tqdm import tqdm
 
 '''
 TODO: 
-1.get artist tag and append to the prompt to VLM. (Done)
-2.combine character tag and ORIGINAL SUIT together. (which need a database to convert)
+1. Combine character tag and ORIGINAL SUIT together. (which need a database to convert)
     A list needs to be created, including the original costume and facial type of the character.
     Let AI determine if the character's features match. If they do, it should indicate that the character is wearing their original costume. 
     If not, it should output what the character is actually wearing.
-3.Add a prompt to determine if there are multiple characters. 
-    If there are multiple characters, evaluate each one based on the number of individuals and print the results accordingly. 
-    Then store the information for each character as separate JSON files.
-    (Done)
+2. Instead of loading model instantly, use API to make captions to support more VLMs.
+
+Notice: The dataset has switched to danbooru because there's lot's of NSFW images in Pixiv-2.6M dataset.
 '''
 
 def load_tags_from_json(image):
@@ -109,27 +104,27 @@ def generate_prompt(image):
     
     return generated_prompt
 
-def model_loader():
-    repo_name = "./molmo-7B-D-bnb-4bit"
-    arguments = {"device_map": "auto", "torch_dtype": "auto", "trust_remote_code": True}
-    
-    processor = AutoProcessor.from_pretrained(repo_name, **arguments)
-    model = AutoModelForCausalLM.from_pretrained(repo_name, **arguments)
-    
-    return processor, model
-
-def image_re_caption(image, processor, model):
+def image_re_caption(image):
     generated_prompt = generate_prompt(image)
     tqdm.write(f'\n\nAsk: {generated_prompt}')
     
-    inputs = processor.process(images=[Image.open(image)], text=generated_prompt)
-    inputs = {k: v.to(model.device).unsqueeze(0) for k, v in inputs.items()}
-    output = model.generate_from_batch(inputs, GenerationConfig(max_new_tokens=512, stop_strings="<|endoftext|>"), tokenizer=processor.tokenizer)
+    # Via API
+    img = Image.open(image)
+    img_byte_arr = BytesIO()
+    img.save(img_byte_arr, format='PNG')
+    img_byte_arr = img_byte_arr.getvalue()
+
+    api_url = "http://127.0.0.1:5000/caption"
     
-    generated_tokens = output[0, inputs["input_ids"].size(1) :]
-    generated_text = processor.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+    response = requests.post(api_url, json={"prompt": generated_prompt, "image": img_byte_arr})
+
+    if response.status_code == 200:
+        caption = response.json().get('caption')
+        tqdm.write(f"Response: {caption}")
+    else:
+        tqdm.write(f"Failed to get caption: {response.status_code}")
     
-    return generated_text
+    return caption
 
 def process_image(image_path, processor, model):
     output_file = os.path.join(captions_output_dir, os.path.basename(str(os.path.splitext(image_path)[0] + '.txt')))
@@ -167,7 +162,6 @@ def main(repo_dir):
         os.makedirs(temp_dir, exist_ok=True)
     
     try:
-        processor, model = model_loader()
         
         for i in range(0, 999):
             images = extract_tar_data(os.path.join(image_dir, f'data-{i:04d}.tar'), temp_dir)
@@ -175,7 +169,7 @@ def main(repo_dir):
             image_paths = [os.path.join(temp_dir, img) for img in images]
             
             for img in tqdm(image_paths):
-                process_image(img, processor, model)
+                process_image(img)
         
         shutil.rmtree(temp_dir)
         
@@ -187,7 +181,7 @@ def main(repo_dir):
         shutil.rmtree(temp_dir)
 
 if __name__ == "__main__":
-    
+    F.scaled_dot_product_attention = sageattn # Use sageattn to improve speed
     captions_output_dir = './NL-captions'
     dataset_path = './Pixiv-2.6M'
     
