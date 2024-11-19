@@ -3,8 +3,6 @@ import json
 import tarfile
 import shutil
 import requests
-from io import BytesIO
-from PIL import Image
 from tqdm import tqdm
 
 '''
@@ -107,17 +105,26 @@ def generate_prompt(image):
 def image_re_caption(image):
     generated_prompt = generate_prompt(image)
     tqdm.write(f'\n\nAsk: {generated_prompt}')
-    
-    # Via API
+    '''
+    # Via OpenAI API
+    # Notice: My Flask API only accept image path and prompt. (Due to the fact that transferring base64-based image costs time.)
+    # The model I used is Qwen2-VL-3B-AWQ, which is fast and accurate enough in low-parameter VLM. (It's an amateur scientific statement. If you have any opinion, make an issue.)
     img = Image.open(image)
     img_byte_arr = BytesIO()
     img.save(img_byte_arr, format='PNG')
     img_byte_arr = img_byte_arr.getvalue()
-
+    '''
     api_url = "http://127.0.0.1:5000/caption"
-    
-    response = requests.post(api_url, json={"prompt": generated_prompt, "image": img_byte_arr})
 
+    '''
+    {
+        "prompt": 'Describe this image.',
+        "image": image path
+    }
+    '''
+
+    response = requests.post(api_url, json={"prompt": generated_prompt, "image": image})
+    
     if response.status_code == 200:
         caption = response.json().get('caption')
         tqdm.write(f"Response: {caption}")
@@ -126,14 +133,14 @@ def image_re_caption(image):
     
     return caption
 
-def process_image(image_path, processor, model):
-    output_file = os.path.join(captions_output_dir, os.path.basename(str(os.path.splitext(image_path)[0] + '.txt')))
-    result = image_re_caption(image_path, processor, model)
+def process_image(image_path:str, tag_path:str, output_file:str):
+    # output_file = os.path.join(captions_output_dir, os.path.basename(str(os.path.splitext(image_path)[0] + '.txt')))
+    result = image_re_caption(image_path)
     
     if os.path.exists(output_file):
         os.remove(output_file)
     
-    tqdm.write(f"\n\nVLM: {result}")
+    # tqdm.write(f"\n\nVLM: {result}")
     
     with open(output_file, 'w', encoding='UTF-8') as f:
         f.write(result)
@@ -142,13 +149,13 @@ def process_image(image_path, processor, model):
     os.remove(image_path)
     os.remove(tag_file)
 
-def extract_tar_data(tar_path, extract_path):
+def extract_tar_data(tar_path:str, extract_path:str) -> dict:
     with tarfile.open(tar_path, 'r') as tar:
         members = tar.getmembers()
         tar.extractall(path=extract_path)
         return [member.name for member in members]
 
-def main(repo_dir):
+def main(repo_dir:str):
     global pid_uid_dict, multiple_characters_dict
     multiple_characters_dict = {}
     with open('pid-uid.json') as metadata:
@@ -180,8 +187,7 @@ def main(repo_dir):
         print('Error when processing:', e)
         shutil.rmtree(temp_dir)
 
-if __name__ == "__main__":
-    F.scaled_dot_product_attention = sageattn # Use sageattn to improve speed
+if __name__ == "__main__": 
     captions_output_dir = './NL-captions'
     dataset_path = './Pixiv-2.6M'
     
