@@ -8,3 +8,7 @@ images/*.json
 molmo-7B-D-bnb-4bit/
 Pixiv-2.6M/
 NL-captions/
+Qwen2-VL-2B-Instruct-AWQ/
+*.txt
+*.json
+*.jsonl

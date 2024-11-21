@@ -2,7 +2,6 @@ from flask import Flask, request, jsonify
 from PIL import Image
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-import os
 import requests
 import base64
 import io
@@ -36,11 +35,11 @@ def resize_and_encode_image(image_path, max_size=1024):
     image_base64 = base64.b64encode(img_byte_array).decode('utf-8')
     return image_base64
 
-def perform_caption(prompt:str, image:Image.Image) -> str:
+def perform_caption(model:str, prompt:str, image:Image.Image) -> str:
 
     image_base64 = resize_and_encode_image(image)
     data = {
-        "model": 'gpt-4o', # gpt-4o-mini will be more suitable for this task
+        "model": model, 
         "messages": [
             {
                 "role": "user",
@@ -61,7 +60,7 @@ def perform_caption(prompt:str, image:Image.Image) -> str:
     with requests.Session() as s:
         s.mount('https://', HTTPAdapter(max_retries=retries))
         try:
-            response = s.post(api_url, headers=headers, json=data, timeout=timeout)
+            response = s.post(api_url, headers=headers, json=data, timeout=180)
             response.raise_for_status()
             response_data = response.json()
             if 'error' in response_data:
@@ -79,14 +78,16 @@ def api(prompt, image):
     
     prompt = data.get("prompt")
     image = data.get("image")
+    model = 'gpt-4o' # gpt-4o-mini, pixtral-12b (free) or llama-3.2-vision-11b (via openrouter) will be more suitable for this task
     
-    status, caption = perform_caption(prompt, image)
+    status, caption = perform_caption(model, prompt, image)
     if status:
         return jsonify({"caption": caption})
     else:
         return jsonify({"error": caption}), 500
 
 if __name__ == "__main__":
-    api_url = 'http://api.openai.com/v1/chat/completions'
-    api_key = 'sk-1145141919810'
+    api_url = 'http://api.openai.com/v1/chat/completions' # 'https://openrouter.ai/api/v1/chat/completions' or 'https://api.mistral.ai/v1/chat/completions'
+    gpt_api_key = 'sk-1145141919810' # If you use openrouter, replace this to your api key.
+    mistral_api_key = 'sk-1145141919810' 
     app.run(port=5000)
