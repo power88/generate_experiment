@@ -9,6 +9,7 @@ molmo-7B-D-bnb-4bit/
 Pixiv-2.6M/
 NL-captions/
 Qwen2-VL-2B-Instruct-AWQ/
+Ovis1.6-Llama3.2-3B/
 *.txt
 *.json
 *.jsonl
