@@ -10,7 +10,7 @@ import io
 app = Flask(__name__)
 
 def model_loader():
-    repo_name = "./Qwen2-VL-2B-Instruct-AWQ"
+    repo_name = "./Qwen2-VL-7B-Instruct-AWQ"
     arguments = {"device_map": "auto", "torch_dtype": torch.float16, "trust_remote_code": True}
     
     model = Qwen2VLForConditionalGeneration.from_pretrained(repo_name, **arguments)
@@ -78,7 +78,7 @@ def perform_caption(prompt:str, image:Image.Image) -> str:
     return output_text
     
 @app.route('/caption', methods=['POST'])
-def api(prompt, image):
+def api():
     data = request.json
     
     prompt = data.get("prompt")
@@ -89,4 +89,4 @@ def api(prompt, image):
 
 if __name__ == "__main__":
     processor, model = model_loader()
-    app.run(port=5000)
+    app.run(port=5090)

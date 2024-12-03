@@ -1,5 +1,4 @@
 from flask import Flask, request, jsonify
-import ollama
 import base64
 from PIL import Image
 import io
@@ -33,13 +32,28 @@ def resize_and_encode_image(image_path, max_size=1024):
     image_base64 = base64.b64encode(img_byte_array).decode('utf-8')
     return image_base64
 
-def perform_caption(prompt:str, image:str):
+def perform_caption(prompt:str, image:str, model='llama3.2-vision:11b-instruct-q8_0'):
     image_base64 = resize_and_encode_image(image)
-    
-    return ollama.generate(prompt, image)
+    try:
+        response = ollama.chat(
+            model=model,
+            messages=[{
+                'role': 'user',
+                'content': prompt,
+                'images': [f'{image_base64}']
+            }]
+        )
+        return response['message']['content']
+    except Exception as e:
+        print(f'Error: {e}')
+        return None
 
 @app.route('/caption', methods=['POST'])
-def api(prompt, image):
+def api():
+    try:
+        import ollama
+    except ImportError as e:
+        print('Please install Ollama library first.')
     data = request.json
     
     prompt = data.get("prompt")
